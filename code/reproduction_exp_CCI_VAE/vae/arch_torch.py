@@ -39,7 +39,7 @@ class VAE(nn.Module):
 		h = F.selu(self.conv3(h))
 		h = F.selu(self.conv4(h))
 		self.h_shape = h.shape
-		h = h.view(-1, h.shape[1]*h.shape[2]*h.shape[3])
+		h = h.reshape(-1, h.shape[1]*h.shape[2]*h.shape[3])
 		h = F.selu(self.fc1(h))
 		h = F.selu(self.fc2(h))
 		h = F.selu(self.fc3(h))
