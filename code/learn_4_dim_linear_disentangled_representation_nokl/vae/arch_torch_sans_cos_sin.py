@@ -23,8 +23,8 @@ class VAE(nn.Module):
 
 		self.fc1 = nn.Linear(512, 256)
 		self.fc2 = nn.Linear(256, 256)
-		self.fc3 = nn.Linear(256, 2*Z_DIM)
-
+		self.fc3 = nn.Linear(256, 2*Z_DIM);self.fc = nn.Linear(2*Z_DIM, Z_DIM)
+        
 		# Decoder layers
 
 		self.fc4 = nn.Linear(Z_DIM, 256)
@@ -68,6 +68,8 @@ class VAE(nn.Module):
 		h = F.selu(self.fc1(h))
 		h = F.selu(self.fc2(h))
 		h = F.selu(self.fc3(h))
+		h = F.selu(self.fc(h))
+		h = h/torch.norm(h)
 		return h
 
 	def reparameterize(self, mu_and_logvar):
@@ -115,17 +117,9 @@ class VAE(nn.Module):
 
 
 	def forward(self, x, action, encode=False, mean=False, decode=False):
-		if decode:
-			return self.decode(x)
-		mu_and_logvar = self.encode(x)
-		z = self.reparameterize(mu_and_logvar)
+		z = self.encode(x)
 		z_plus_1 = self.predict_next_z(z,action)
-		if encode:
-			if mean:
-				mu = torch.split(mu_and_logvar,int(mu_and_logvar.shape[1]/2),dim=1)[0]
-				return mu
-			return z, z_plus_1
-		return self.decode(z), mu_and_logvar, z_plus_1, z
+		return self.decode(z), z_plus_1, z
 
 
 	def generate_reconstructed_data(self, obs_data, actions, filename):
