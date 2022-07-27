@@ -117,6 +117,8 @@ class VAE(nn.Module):
 
 
 	def forward(self, x, action, encode=False, mean=False, decode=False):
+		if decode:
+			return self.decode(x)
 		z = self.encode(x)
 		z_plus_1 = self.predict_next_z(z,action)
 		return self.decode(z), z_plus_1, z
