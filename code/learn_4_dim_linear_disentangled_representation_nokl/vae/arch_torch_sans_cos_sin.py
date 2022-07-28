@@ -120,8 +120,6 @@ class VAE(nn.Module):
 		if decode:
 			return self.decode(x)
 		z = self.encode(x)
-		import pdb
-		pdb.set_trace()
 		z_plus_1 = self.predict_next_z(z,action)
 		return self.decode(z), z_plus_1, z
 
@@ -142,7 +140,7 @@ class VAE(nn.Module):
 
 		np.save(filename, out)
 
-		out_predictions = np.array([res[2].cpu().detach().numpy(), res[3].cpu().detach().numpy()])
+		out_predictions = np.array([res[1].cpu().detach().numpy(), res[2].cpu().detach().numpy()])
 
 		np.save(filename+'_prediction_forward', out_predictions)
 
