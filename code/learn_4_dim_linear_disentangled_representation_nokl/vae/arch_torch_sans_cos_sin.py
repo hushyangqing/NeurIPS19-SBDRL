@@ -120,6 +120,8 @@ class VAE(nn.Module):
 		if decode:
 			return self.decode(x)
 		z = self.encode(x)
+		import pdb
+		pdb.set_trace()
 		z_plus_1 = self.predict_next_z(z,action)
 		return self.decode(z), z_plus_1, z
 
