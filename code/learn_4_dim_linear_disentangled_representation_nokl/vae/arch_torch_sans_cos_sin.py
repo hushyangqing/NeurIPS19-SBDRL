@@ -69,7 +69,8 @@ class VAE(nn.Module):
 		h = F.selu(self.fc2(h))
 		h = F.selu(self.fc3(h))
 		h = F.selu(self.fc(h))
-		h = h/torch.norm(h)
+		#h = h/torch.norm(h)
+		h = (h-torch.mean(h))/(torch.sqrt(torch.tensor(h.shape[1]))*torch.std(h))
 		return h
 
 	def reparameterize(self, mu_and_logvar):
