@@ -122,9 +122,6 @@ def train_vae(folder):
 		running_losses = []
 
 		for batch_idx, (inputs, actions) in tqdm(enumerate(dataset_loader)):
-			import pdb
-			pdb.set_trace()
-
 			if batch_idx>2:
 				pass
 
