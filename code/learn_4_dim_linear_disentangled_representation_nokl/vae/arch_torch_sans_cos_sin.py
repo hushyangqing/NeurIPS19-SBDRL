@@ -69,8 +69,8 @@ class VAE(nn.Module):
 		h = F.selu(self.fc2(h))
 		h = F.selu(self.fc3(h))
 		h = F.selu(self.fc(h))
-		#h = h/torch.norm(h)
-		h = (h-torch.mean(h))/torch.std(h)
+		h = h/torch.norm(h)
+		#h = (h-torch.mean(h))/torch.std(h)
 		return h
 
 	def reparameterize(self, mu_and_logvar):
@@ -122,6 +122,8 @@ class VAE(nn.Module):
 			return self.decode(x)
 		z = self.encode(x)
 		z_plus_1 = self.predict_next_z(z,action)
+		if encode:
+			return z, z_plus_1
 		return self.decode(z), z_plus_1, z
 
 
