@@ -7,7 +7,20 @@ from torch.utils.data import Dataset
 import os
 from PIL import Image
 
+def determinant_regularization(A, up):
 
+	if up:
+		with torch.no_grad():
+			coefficient = torch.sqrt(torch.linalg.det(A.weight[:2, :2]))
+			if coefficient != 0:
+				A.weight[:2, :2] /= coefficient
+	else: 
+		with torch.no_grad():	
+			coefficient = torch.sqrt(torch.linalg.det(A.weight[2:, 2:]))
+			if coefficient != 0:
+				A.weight[2:, 2:] /= coefficient
+	
+	return True
 
 class VAE(nn.Module):
 	def __init__(self):
@@ -43,10 +56,10 @@ class VAE(nn.Module):
 		self.A_4 = nn.Linear(Z_DIM, Z_DIM)
 		
 		
-		self.A_1.weight = torch.nn.Parameter(torch.Tensor([[1,1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]])) 
-		self.A_2.weight = torch.nn.Parameter(torch.Tensor([[1,1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]]))  
-		self.A_3.weight = torch.nn.Parameter(torch.Tensor([[1,0,0,0],[0,1,0,0],[0,0,1,1],[0,0,1,1]]))  
-		self.A_4.weight = torch.nn.Parameter(torch.Tensor([[1,0,0,0],[0,1,0,0],[0,0,1,1],[0,0,1,1]]))
+		self.A_1.weight = torch.nn.Parameter(torch.Tensor([[1,-1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]])) 
+		self.A_2.weight = torch.nn.Parameter(torch.Tensor([[1,-1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]]))  
+		self.A_3.weight = torch.nn.Parameter(torch.Tensor([[1,0,0,0],[0,1,0,0],[0,0,1,-1],[0,0,1,1]]))  
+		self.A_4.weight = torch.nn.Parameter(torch.Tensor([[1,0,0,0],[0,1,0,0],[0,0,1,-1],[0,0,1,1]]))
 		self.A_1.bias = torch.nn.Parameter(torch.Tensor([0,0,0,0])) 
 		self.A_2.bias = torch.nn.Parameter(torch.Tensor([0,0,0,0]))
 		self.A_3.bias = torch.nn.Parameter(torch.Tensor([0,0,0,0]))
@@ -112,12 +125,17 @@ class VAE(nn.Module):
 				z_plus_1 = self.A_4(z[i])
 
 			res = torch.cat((res,z_plus_1.reshape(1,Z_DIM)), dim=0).reshape(-1,Z_DIM)
-
-
+		
 		return res
 
+	def _set(self):
+		determinant_regularization(self.A_1, up=True)
+		determinant_regularization(self.A_2, up=True)
+		determinant_regularization(self.A_3, up=False)
+		determinant_regularization(self.A_4, up=False)
 
 	def forward(self, x, action, encode=False, mean=False, decode=False):
+		self._set()
 		if decode:
 			return self.decode(x)
 		z = self.encode(x)
