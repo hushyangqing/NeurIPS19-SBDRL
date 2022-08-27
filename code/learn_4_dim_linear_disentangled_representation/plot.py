@@ -4,20 +4,32 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
-vae = torch.load('vae/1659492429474762/saved_models/epoch_34_env_0', map_location={'cuda:0': 'cpu'})
-A_1 = vae.A_1.weight.detach().numpy()
-A_2 = vae.A_2.weight.detach().numpy()
-A_3 = vae.A_3.weight.detach().numpy()
-A_4 = vae.A_4.weight.detach().numpy()
-print(A_1)
-print(np.linalg.det(A_1))
-print(A_2)
-print(np.linalg.det(A_2))
-print(A_3)
-print(np.linalg.det(A_3))
-print(A_4)
-print(np.linalg.det(A_4))
+def cal_weight(angle, up, cuda=True):
+	
+	tensor_0 = torch.zeros(1)
+	tensor_1 = torch.ones(1)
 
+	if up:
+		return  torch.stack([
+			torch.stack([torch.cos(angle), -torch.sin(angle), tensor_0, tensor_0]),
+			torch.stack([torch.sin(angle), torch.cos(angle), tensor_0, tensor_0]),
+			torch.stack([tensor_0, tensor_0, tensor_1, tensor_0]),
+			torch.stack([tensor_0, tensor_0, tensor_0, tensor_1])
+		]).reshape(4, 4)
+	else: 
+		return  torch.stack([
+			torch.stack([tensor_1, tensor_0, tensor_0, tensor_0]),
+			torch.stack([tensor_0, tensor_1, tensor_0, tensor_0]),
+			torch.stack([tensor_0, tensor_0, torch.cos(angle), -torch.sin(angle)]),
+			torch.stack([tensor_0, tensor_0, torch.sin(angle), torch.cos(angle)])
+		]).reshape(4, 4)
+
+vae = torch.load('vae/16615758883745522/saved_models/epoch_34_env_0', map_location={'cuda:0': 'cpu'})
+
+print(vae.A_1_angle)
+print(vae.A_2_angle)
+print(vae.A_3_angle)
+print(vae.A_4_angle)
 z = torch.tensor([1.,1.,1.,1.])
 im = vae.forward(z,action=None,decode=True).detach().numpy().reshape(-1,3,64,64).transpose((0,2,3,1))
 ims=[]

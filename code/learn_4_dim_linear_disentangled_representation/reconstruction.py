@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import torch 
 
 
-images = np.load('vae/1659492429474762/validation/reconstruction_epoch_34_env_0.npy')
+images = np.load('vae/16615758883745522/validation/reconstruction_epoch_34_env_0.npy')
 input = images[0]
 output = images[1]
 

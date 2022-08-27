@@ -15,7 +15,7 @@ CUDA = torch.cuda.is_available()
 ## Dtype of the tensors depending on CUDA
 GPU_MODE = True
 DEVICE = torch.device("cuda") if GPU_MODE else torch.device("cpu")
-vae = torch.load('vae/1659492429474762/saved_models/epoch_34_env_0', map_location={'cuda:0': 'cpu'}).to(DEVICE)
+vae = torch.load('vae/16615758883745522/saved_models/epoch_34_env_0', map_location={'cuda:0': 'cpu'}).to(DEVICE)
 
 # t is the temperature??? so
 def uniform_loss(x, t=2):

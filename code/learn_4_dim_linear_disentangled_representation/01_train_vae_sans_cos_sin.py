@@ -13,7 +13,19 @@ import os
 from config import plot_figure_loss, early_stopping
 from PIL import Image
 from torch.autograd import Variable
+import random 
 
+def seed_torch(seed=0):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    # torch.use_deterministic_algorithms(True)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.enabled = False
 
 def parse_args():
 	desc = "Train VAE on one given maze environment"
@@ -64,7 +76,7 @@ def train_batch(vae, optimizer, frames, actions, anneal):
 
 	optimizer.zero_grad()
 	recon_x, mu_and_logvar, z_plus_1, z = vae(frames, actions)
-
+	
 
 	mu = torch.split(mu_and_logvar,int(mu_and_logvar.shape[1]/2),dim=1)[0]
 	logvar = torch.split(mu_and_logvar,int(mu_and_logvar.shape[1]/2),dim=1)[1]
@@ -79,10 +91,10 @@ def train_batch(vae, optimizer, frames, actions, anneal):
 
 	loss_total.backward()
 
-	set_relevant_grad_to_zero(A=vae.A_1, up=True)
-	set_relevant_grad_to_zero(A=vae.A_2, up=True)
-	set_relevant_grad_to_zero(A=vae.A_3, up=False)
-	set_relevant_grad_to_zero(A=vae.A_4, up=False)
+	#set_relevant_grad_to_zero(A=vae.A_1, up=True)
+	#set_relevant_grad_to_zero(A=vae.A_2, up=True)
+	#set_relevant_grad_to_zero(A=vae.A_3, up=False)
+	#set_relevant_grad_to_zero(A=vae.A_4, up=False)
 	
 	optimizer.step()
 
@@ -234,6 +246,7 @@ def train_vae(folder):
 def main():
 
 	# parse arguments
+	seed_torch()
 	args = parse_args()
 
 	if args is None:

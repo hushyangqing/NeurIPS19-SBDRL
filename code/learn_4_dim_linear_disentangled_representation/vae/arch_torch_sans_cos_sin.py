@@ -37,21 +37,11 @@ class VAE(nn.Module):
 
 		# Physics layers
 
-		self.A_1 = nn.Linear(Z_DIM, Z_DIM)
-		self.A_2 = nn.Linear(Z_DIM, Z_DIM)
-		self.A_3 = nn.Linear(Z_DIM, Z_DIM)
-		self.A_4 = nn.Linear(Z_DIM, Z_DIM)
+		self.A_1_angle = torch.nn.Parameter(torch.Tensor([3.14/4]))
+		self.A_2_angle = torch.nn.Parameter(torch.Tensor([3.14/4]))
+		self.A_3_angle = torch.nn.Parameter(torch.Tensor([3.14/4]))
+		self.A_4_angle = torch.nn.Parameter(torch.Tensor([3.14/4]))
 		
-		
-		self.A_1.weight = torch.nn.Parameter(torch.Tensor([[1,1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]])) 
-		self.A_2.weight = torch.nn.Parameter(torch.Tensor([[1,1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]]))  
-		self.A_3.weight = torch.nn.Parameter(torch.Tensor([[1,0,0,0],[0,1,0,0],[0,0,1,1],[0,0,1,1]]))  
-		self.A_4.weight = torch.nn.Parameter(torch.Tensor([[1,0,0,0],[0,1,0,0],[0,0,1,1],[0,0,1,1]]))
-		self.A_1.bias = torch.nn.Parameter(torch.Tensor([0,0,0,0])) 
-		self.A_2.bias = torch.nn.Parameter(torch.Tensor([0,0,0,0]))
-		self.A_3.bias = torch.nn.Parameter(torch.Tensor([0,0,0,0]))
-		self.A_4.bias = torch.nn.Parameter(torch.Tensor([0,0,0,0])) 	
-
 
 		#import pdb 
 		#pdb.set_trace()
@@ -87,27 +77,45 @@ class VAE(nn.Module):
 		h = F.sigmoid(self.deconv4(h))
 		return h
 
+	def cal_weight(self, angle, up, cuda=True):
+		
+		tensor_0 = torch.zeros(1).cuda()
+		tensor_1 = torch.ones(1).cuda()
+
+		if up:
+			return  torch.stack([
+				torch.stack([torch.cos(angle), -torch.sin(angle), tensor_0, tensor_0]),
+				torch.stack([torch.sin(angle), torch.cos(angle), tensor_0, tensor_0]),
+				torch.stack([tensor_0, tensor_0, tensor_1, tensor_0]),
+				torch.stack([tensor_0, tensor_0, tensor_0, tensor_1])
+			]).reshape(Z_DIM, Z_DIM)
+		else: 
+			return  torch.stack([
+				torch.stack([tensor_1, tensor_0, tensor_0, tensor_0]),
+				torch.stack([tensor_0, tensor_1, tensor_0, tensor_0]),
+				torch.stack([tensor_0, tensor_0, torch.cos(angle), -torch.sin(angle)]),
+				torch.stack([tensor_0, tensor_0, torch.sin(angle), torch.cos(angle)])
+			]).reshape(Z_DIM, Z_DIM)
+
 	def predict_next_z(self, z, action, cuda=True):
 
 		if cuda:
 			res = torch.Tensor([]).cuda()
 		else:
 			res = torch.Tensor([])
-
 		for i,ac in enumerate(action):
-
 			if ac == 0:
-				z_plus_1 = self.A_1(z[i])
+				z_plus_1 = torch.mm(self.cal_weight(self.A_1_angle, True), z[i].unsqueeze(1))
 
 			if ac == 2:
-				z_plus_1 = self.A_2(z[i])
+				z_plus_1 = torch.mm(self.cal_weight(self.A_2_angle, True), z[i].unsqueeze(1))
 
 			if ac == 1:
-				z_plus_1 = self.A_3(z[i])
+				z_plus_1 = torch.mm(self.cal_weight(self.A_3_angle, False), z[i].unsqueeze(1))
 
 			if ac == 3:
-				z_plus_1 = self.A_4(z[i])
-
+				z_plus_1 = torch.mm(self.cal_weight(self.A_4_angle, False), z[i].unsqueeze(1))
+			
 			res = torch.cat((res,z_plus_1.reshape(1,Z_DIM)), dim=0).reshape(-1,Z_DIM)
 
 
