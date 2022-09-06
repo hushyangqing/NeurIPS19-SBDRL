@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import torch 
 
 
-images = np.load('vae/16615758883745522/validation/reconstruction_epoch_34_env_0.npy')
+images = np.load('vae/16620812455956464/validation/reconstruction_epoch_34_env_0.npy')
 input = images[0]
 output = images[1]
 
@@ -24,4 +24,4 @@ for k, i in enumerate(ax):
             axis.set_xticklabels([])
             axis.set_yticklabels([])
             axis.set_aspect(1)
-plt.savefig('recon_constant1.png')
+plt.savefig('recon_constant50_step.png')

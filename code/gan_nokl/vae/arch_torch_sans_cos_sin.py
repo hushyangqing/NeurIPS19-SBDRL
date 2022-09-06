@@ -82,7 +82,7 @@ class VAE(nn.Module):
 		h = F.selu(self.fc2(h))
 		h = F.selu(self.fc3(h))
 		h = F.selu(self.fc(h))
-		h = h/torch.norm(h)
+		#h = h/torch.norm(h)
 		#h = (h-torch.mean(h))/torch.std(h)
 		return h
 
@@ -127,14 +127,14 @@ class VAE(nn.Module):
 		determinant_regularization(self.A_4, up=False)
 
 	def forward(self, x, action, encode=False, mean=False, decode=False):
-		self._set()
+		#self._set()
 		if decode:
 			return self.decode(x)
 		z = self.encode(x)
 		z_plus_1 = self.predict_next_z(z,action)
 		if encode:
 			return z, z_plus_1
-		return self.decode(z), z_plus_1, z
+		return self.decode(z), self.decode(z_plus_1), z, z_plus_1
 
 
 	def generate_reconstructed_data(self, obs_data, actions, filename):
@@ -153,7 +153,7 @@ class VAE(nn.Module):
 
 		np.save(filename, out)
 
-		out_predictions = np.array([res[1].cpu().detach().numpy(), res[2].cpu().detach().numpy()])
+		out_predictions = np.array([res[3].cpu().detach().numpy(), res[2].cpu().detach().numpy()])
 
 		np.save(filename+'_prediction_forward', out_predictions)
 

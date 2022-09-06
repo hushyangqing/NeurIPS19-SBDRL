@@ -7,35 +7,25 @@ from tensorboardX import SummaryWriter
 import os
 import time
 import torch.nn.functional as F
-import torch.nn as nn
-import torch
 import numpy as np
 import argparse
 import os
 from config import plot_figure_loss, early_stopping
 from PIL import Image
 from torch.autograd import Variable
+import random 
 
-img_shape = (3, 64, 64)
-
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
-
-        self.model = nn.Sequential(
-            nn.Linear(int(np.prod(img_shape)), 512),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(512, 256),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(256, 1),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, img):
-        img_flat = img.view(img.size(0), -1)
-        validity = self.model(img_flat)
-
-        return validity
+def seed_torch(seed=0):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    # torch.use_deterministic_algorithms(True)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) # if you are using multi-GPU.
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.enabled = False
 
 def parse_args():
 	desc = "Train VAE on one given maze environment"
@@ -81,48 +71,31 @@ def loss_fn_predict_next_z(pred, real):
 
 	return loss
 
-def train_batch(vae, optimizer, frames, actions, anneal, cuda=True):
+def train_batch(vae, optimizer, frames, actions, anneal):
 	""" Train the VAE over a batch of example frames """
 
 	optimizer.zero_grad()
-
-	adversarial_loss = torch.nn.BCELoss()
-	discriminator = Discriminator()
-
-	if cuda:
-		adversarial_loss.cuda()
-		discriminator.cuda()
-
-	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-	valid = Variable(Tensor(frames.size(0), 1).fill_(1.0), requires_grad=False)
-	fake = Variable(Tensor(frames.size(0), 1).fill_(1.0), requires_grad=False)
-
-	real_imgs = Variable(frames.type(Tensor))
-
 	recon_x, gen_imgs, z, z_plus_1 = vae(frames, actions)
-
-	real_loss = adversarial_loss(discriminator(real_imgs), valid)
-	fake_loss = adversarial_loss(discriminator(gen_imgs.detach()), fake)
-	d_loss = (real_loss + fake_loss)/2
-
+	
 	loss_recon = loss_fn(recon_x, frames, anneal)
 
 	targets = z[1:]
 
+
 	loss_predict_next_z = loss_fn_predict_next_z(pred=z_plus_1[:-1], real=targets)
 
-	loss_total = loss_recon + loss_predict_next_z + d_loss
+	loss_total = loss_recon + loss_predict_next_z
 
 	loss_total.backward()
 
-	set_relevant_grad_to_zero(A=vae.A_1, up=True)
-	set_relevant_grad_to_zero(A=vae.A_2, up=True)
-	set_relevant_grad_to_zero(A=vae.A_3, up=False)
-	set_relevant_grad_to_zero(A=vae.A_4, up=False)
+	#set_relevant_grad_to_zero(A=vae.A_1, up=True)
+	#set_relevant_grad_to_zero(A=vae.A_2, up=True)
+	#set_relevant_grad_to_zero(A=vae.A_3, up=False)
+	#set_relevant_grad_to_zero(A=vae.A_4, up=False)
 	
 	optimizer.step()
 
-	return float(loss_total), float(loss_recon), float(loss_predict_next_z), float(d_loss)
+	return float(loss_total), float(loss_recon), float(loss_predict_next_z)
 
 
 def train_vae(folder):
@@ -158,7 +131,6 @@ def train_vae(folder):
 		running_losses = []
 
 		for batch_idx, (inputs, actions) in tqdm(enumerate(dataset_loader)):
-
 			if batch_idx>2:
 				pass
 
@@ -175,11 +147,11 @@ def train_vae(folder):
 			else:
 				anneal = anneal*ANNEAL
 
-			loss, loss_recon, loss_predict_next_z, d_loss= train_batch(vae, optimizer, inputs, actions, anneal)
+			loss, loss_recon, loss_predict_next_z = train_batch(vae, optimizer, inputs, actions, anneal)
 			#import pdb 
 			#pdb.set_trace()
 			running_loss.append(loss)
-			running_losses.append([loss, loss_recon, loss_predict_next_z, d_loss])
+			running_losses.append([loss, loss_recon, loss_predict_next_z])
 
 			##############################
 
@@ -192,6 +164,7 @@ def train_vae(folder):
 				# Log training loss.
 				writer.add_scalar('loss/batch_loss', loss, batch_idx) 
 				writer.add_scalar('loss/batch_loss_recon', loss_recon, batch_idx) 
+				#writer.add_scalar('loss/batch_loss_kl', loss_kl, batch_idx) 
 				writer.add_scalar('loss/batch_loss_predict_next_z', loss_predict_next_z, batch_idx)
 
 			# Figures
@@ -270,6 +243,7 @@ def train_vae(folder):
 def main():
 
 	# parse arguments
+	seed_torch()
 	args = parse_args()
 
 	if args is None:
